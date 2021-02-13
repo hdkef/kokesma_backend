@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"pure/controller"
 	"pure/driver"
 	"pure/utils"
@@ -20,7 +21,35 @@ func init() {
 	_ = godotenv.Load()
 }
 
+type spaHandler struct {
+	staticPath string
+	indexPath  string
+}
+
+func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	path, err := filepath.Abs(r.URL.Path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	path = filepath.Join(h.staticPath, r.URL.Path)
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.FileServer(http.Dir(h.staticPath)).ServeHTTP(w, r)
+}
+
 func main() {
+
 	db, err = driver.ConnectDB()
 	if err != nil {
 		panic(err)
@@ -42,6 +71,10 @@ func main() {
 	router.HandleFunc("/tomas/meminit", utils.Cors(tomas.MemInit(db)))
 	router.HandleFunc("/tomas/admmonitor", utils.Cors(tomas.AdmMonitor(db)))
 	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
+
+	spa := spaHandler{staticPath: "dist/pure", indexPath: "dist/pure/index.html"}
+	router.PathPrefix("/").Handler(spa)
+
 	var PORT = os.Getenv("PORT")
 
 	address := fmt.Sprintf(":%v", PORT)
