@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -16,17 +15,9 @@ func Cors(next http.HandlerFunc) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		cors(&res)
 		if req.Method == "OPTIONS" {
-			authHeader := req.Header.Get("Auth")
-			fmt.Println("options")
-			fmt.Println("header", authHeader)
-			fmt.Println("header", res.Header())
 			res.WriteHeader(http.StatusOK)
 			return
 		}
-		authHeader := req.Header.Get("Auth")
-		fmt.Println("header not options", authHeader)
-		fmt.Println("not options")
-		fmt.Println("header", res.Header())
 		next.ServeHTTP(res, req)
 	}
 }

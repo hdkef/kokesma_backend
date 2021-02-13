@@ -29,7 +29,6 @@ func (c TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println("found userId", claims["Id"])
 		if claims["Role"] == "MEM" {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
 			return
@@ -57,7 +56,6 @@ func (c TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
 				return
 			}
-			fmt.Println(home)
 			homeLoad = append(homeLoad, home)
 		}
 		initLoad.Home = homeLoad
@@ -75,15 +73,12 @@ func (c TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
 				return
 			}
-			fmt.Println(itemname, "end")
 			itemLoad = append(itemLoad, itemid)
 			itemNameLoad = append(itemNameLoad, itemname)
 		}
 		initLoad.Items = itemLoad
 		initLoad.ItemsName = itemNameLoad
-		fmt.Println(initLoad)
 		jsonData, err := json.Marshal(initLoad)
-		fmt.Println("jsonData", jsonData)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json")
 			return
@@ -101,7 +96,6 @@ func (c TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println("found userId", claims["Id"])
 		if claims["Role"] == "MEM" {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
 			return
@@ -136,7 +130,6 @@ func (c TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println("found userId", claims["Id"])
 		if claims["Role"] == "MEM" {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
 			return
@@ -179,14 +172,11 @@ func (c TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 func (c TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		fmt.Println(req.Body)
-
 		claims, err := Authenticate(res, req)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println(claims)
 		var userID = claims["Id"]
 		var journal struct {
 			House string
@@ -262,107 +252,15 @@ func Authenticate(res http.ResponseWriter, req *http.Request) (jwt.MapClaims, er
 	return claimsModel, errs
 }
 
-// //MemGetJournal is for
-// func (c TomasHandler) MemGetJournal(db *sql.DB) http.HandlerFunc {
-// 	return func(res http.ResponseWriter, req *http.Request) {
-// 		fmt.Println("end point hit")
-// 		claims, err := Authenticate(res, req)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
-// 			return
-// 		}
-// 		userID := claims["Id"]
-// 		fmt.Println("Id", userID)
-// 		type Journal struct {
-// 			Date  time.Time
-// 			Nama  string
-// 			Qty   int
-// 			Total int
-// 		}
-// 		var journal []Journal
-// 		rows, err := db.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.userid = $1", userID)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusInternalServerError, "cannot query to db")
-// 			return
-// 		}
-// 		for rows.Next() {
-// 			var journalOne Journal
-// 			err = rows.Scan(&journalOne.Date, &journalOne.Qty, &journalOne.Nama, &journalOne.Total)
-// 			if err != nil {
-// 				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
-// 				return
-// 			}
-// 			journal = append(journal, journalOne)
-// 		}
-// 		jsonData, err := json.Marshal(journal)
-// 		fmt.Println("jsonData", jsonData)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json")
-// 			return
-// 		}
-// 		res.Write([]byte(jsonData))
-// 	}
-
-// }
-
-//GetCurStockList is for
-// func (c TomasHandler) GetCurStockList(db *sql.DB) http.HandlerFunc {
-// 	return func(res http.ResponseWriter, req *http.Request) {
-// 		claims, err := Authenticate(res, req)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
-// 			return
-// 		}
-// 		fmt.Println(claims)
-// 		rumahReq := struct {
-// 			Rumah string
-// 		}{}
-// 		err = json.NewDecoder(req.Body).Decode(&rumahReq)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusInternalServerError, "cannot decode json")
-// 			return
-// 		}
-// 		type Items struct {
-// 			Nama  string
-// 			Qty   int
-// 			Total int
-// 		}
-// 		fmt.Println("rumah", rumahReq.Rumah)
-// 		var inventoryRumah []Items
-// 		rows, err := db.Query("SELECT itemlist.namaprod,curstocklist.qty, curstocklist.qty * itemlist.harga FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", rumahReq.Rumah)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusInternalServerError, "cannot select")
-// 			return
-// 		}
-// 		for rows.Next() {
-// 			var oneInventory Items
-// 			err = rows.Scan(&oneInventory.Nama, &oneInventory.Qty, &oneInventory.Total)
-// 			if err != nil {
-// 				utils.ResponseError(res, http.StatusInternalServerError, "not found")
-// 				return
-// 			}
-// 			inventoryRumah = append(inventoryRumah, oneInventory)
-// 		}
-// 		jsonData, err := json.Marshal(inventoryRumah)
-// 		if err != nil {
-// 			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json")
-// 			return
-// 		}
-// 		res.Write([]byte(jsonData))
-// 	}
-// }
-
 //MemInit is for initializing mem
 func (c TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "Unauthorized Access")
-			fmt.Println(err.Error())
 			return
 		}
 		userID := claims["Id"]
-		fmt.Println("userID", userID)
 		type CurStock struct {
 			ItemID int
 			Nama   string
@@ -432,14 +330,11 @@ func (c TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 func (c TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		fmt.Println("MONITOR KENA HIT")
-
 		claims, err := Authenticate(res, req)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println("found userId", claims["Id"])
 		if claims["Role"] == "MEM" {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
 			return
@@ -471,7 +366,6 @@ func (c TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			Sum      int
 		}
 		err = json.NewDecoder(req.Body).Decode(&load)
-		fmt.Println("Rumah", load.Rumah)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json")
 			return
@@ -534,8 +428,6 @@ func (c TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 		}
 		var sum int
 		for _, j := range monitor.Journal {
-			fmt.Println("sum", sum)
-			fmt.Println("total", j.Total)
 			sum = sum + j.Total
 		}
 		monitor.Sum = sum
@@ -556,7 +448,6 @@ func (c TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		fmt.Println("found userId", claims["Id"])
 		if claims["Role"] == "MEM" {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
 			return

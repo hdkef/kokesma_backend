@@ -334,17 +334,9 @@ class TomasComponent {
         this.toggleInputTomas = false;
     }
     addItem() {
-        // this.status = this.store.select("tomas").pipe(switchMap((x)=>{
-        //   return of(x["info"])
-        // }))
-        // console.log("status",this.status)
         this.store.dispatch(new _redux_actions_tomas_actions__WEBPACK_IMPORTED_MODULE_2__["TomasAddItem"]({ Nama: this.addItemForm.value.Nama, Harga: this.addItemForm.value.Harga, Image: this.addItemForm.value.Image }));
     }
     addAdmTomas() {
-        // this.status = this.store.select("tomas").pipe(switchMap((x)=>{
-        //   return of(x["info"])
-        // }))
-        // console.log("status",this.status)
         this.store.dispatch(new _redux_actions_tomas_actions__WEBPACK_IMPORTED_MODULE_2__["TomasAddAdmTomas"]({ ItemID: this.addAdmTomasForm.value.Item, House: this.addAdmTomasForm.value.Rumah, Qty: this.addAdmTomasForm.value.Qty, Batch: this.addAdmTomasForm.value.Batch }));
     }
     backupReset() {
@@ -421,13 +413,11 @@ class LoginToggle {
     canActivate(route, state) {
         return new Promise((resolve, _) => {
             this.store.select("auth").subscribe(x => {
-                console.log("state role", x.role);
                 if (x.role == "ADM") {
                     this.router.navigateByUrl("/admin/dashboard");
                     resolve(false);
                 }
                 else {
-                    console.log("member login toggle reject");
                     resolve(true);
                 }
             });

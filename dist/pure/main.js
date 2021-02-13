@@ -55,7 +55,6 @@ class AuthEffects {
             let form = { NIM: action.payload.nim, Password: action.payload.password, Role: action.payload.role };
             let loginform = JSON.stringify(form);
             let header = new _angular_common_http__WEBPACK_IMPORTED_MODULE_5__["HttpHeaders"]();
-            console.log("effect loginform", loginform);
             header.append('content-type', 'application/json');
             return this.http.post(`${src_environments_environment__WEBPACK_IMPORTED_MODULE_7__["environment"].api_url}/login`, loginform, { headers: header })
                 .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])((x) => {
@@ -68,19 +67,16 @@ class AuthEffects {
                 this.autoLogout(expiresAt);
                 return new _actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["LoginSuccess"]({ id: id, token: token, expiresAtDate: expiresAtDate, role: role });
             }), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(err => {
-                console.log("CATCH ERROR LOGIN", err.error);
                 return Object(rxjs__WEBPACK_IMPORTED_MODULE_6__["of"])(new _actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["SendInfo"](err.error));
             }));
         }));
         this.autoLogin = this.actions$.pipe(Object(_ngrx_effects__WEBPACK_IMPORTED_MODULE_3__["ofType"])(_actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["AUTO_LOGIN"]), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["switchMap"])((action) => {
-            console.log("login success");
             if (localStorage.getItem("userData")) {
                 let userData = JSON.parse(localStorage.getItem("userData"));
                 let id = userData["ID"];
                 let token = userData["Token"];
                 let expiresatdate = userData["ExpiresAtDate"];
                 let role = userData["Role"];
-                console.log("role", role);
                 let duration = new Date(expiresatdate).getTime() - new Date().getTime();
                 this.autoLogout(duration);
                 return Object(rxjs__WEBPACK_IMPORTED_MODULE_6__["of"])(new _actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["LoginSuccess"]({ id: id, token: token, expiresAtDate: expiresatdate, role: role }));
@@ -130,12 +126,9 @@ class AuthEffects {
         localStorage.removeItem("userData");
     }
     autoLogout(duration) {
-        console.log("function called");
         this.logoutTimer = setTimeout(() => {
-            console.log("the timer is executed");
             this.store.dispatch(new _actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["LogoutStart"]());
         }, duration);
-        console.log(duration);
     }
 }
 AuthEffects.ɵfac = function AuthEffects_Factory(t) { return new (t || AuthEffects)(_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_ngrx_effects__WEBPACK_IMPORTED_MODULE_3__["Actions"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_5__["HttpClient"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_angular_router__WEBPACK_IMPORTED_MODULE_8__["Router"]), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_ngrx_store__WEBPACK_IMPORTED_MODULE_9__["Store"])); };
@@ -476,7 +469,6 @@ class AppComponent {
         this.title = 'pure';
     }
     ngOnInit() {
-        console.log("app component init");
         this.store.dispatch(new _redux_actions_auth_actions__WEBPACK_IMPORTED_MODULE_1__["AutoLogin"]());
     }
 }
@@ -805,7 +797,6 @@ class TomasEffects {
                 let rumah = x["Rumah"];
                 let curstock = x["Curstock"];
                 let journal = x["Journal"];
-                console.log("meminit", x);
                 return new _actions_tomas_actions__WEBPACK_IMPORTED_MODULE_3__["TomasMemSuccess"]({ nama: nama, nim: nim, rumah: rumah, curstock: curstock, journal: journal });
             }, Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["catchError"])((err) => {
                 return Object(rxjs__WEBPACK_IMPORTED_MODULE_7__["of"])(new _actions_tomas_actions__WEBPACK_IMPORTED_MODULE_3__["TomasSendInfo"](err.error));
@@ -817,7 +808,6 @@ class TomasEffects {
             let housejson = JSON.stringify({ Rumah: action.payload });
             return this.http.post(`${src_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].api_url}/tomas/admmonitor`, housejson, { headers: header })
                 .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_6__["map"])((x) => {
-                console.log("effect mon", x);
                 let monuser = x["User"];
                 let monjournal = x["Journal"];
                 let moncurstock = x["Curstock"];
@@ -1102,7 +1092,6 @@ function authReducer(state = initialState, action) {
         case _actions_auth_actions__WEBPACK_IMPORTED_MODULE_0__["AUTO_LOGIN"]:
             return state;
         case _actions_auth_actions__WEBPACK_IMPORTED_MODULE_0__["LOGIN_SUCCESS"]:
-            console.log("payload", action.payload);
             return Object.assign(Object.assign({}, state), { id: action.payload["id"], token: action.payload["token"], expiresAtDate: action.payload["expiresAtDate"], errorMessage: "", role: action.payload["role"] });
         case _actions_auth_actions__WEBPACK_IMPORTED_MODULE_0__["LOGOUT_START"]:
             return Object.assign(Object.assign({}, state), { id: 0, token: null, expiresAtDate: null, info: "null" });
@@ -1140,14 +1129,12 @@ class AuthInterceptorService {
     }
     addToken(req) {
         return this.store.pipe(Object(_ngrx_store__WEBPACK_IMPORTED_MODULE_2__["select"])("auth"), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_3__["first"])(), Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_3__["mergeMap"])((state, _) => {
-            console.log("state", state);
             if (state.token) {
                 let tokenHead = `bearer ${state.token}`;
                 let authorizedReq = req.clone({ headers: req.headers.append("Auth", tokenHead) });
                 return Object(rxjs__WEBPACK_IMPORTED_MODULE_1__["of"])(authorizedReq);
             }
             else {
-                console.log("masuk sini");
                 Object(rxjs__WEBPACK_IMPORTED_MODULE_1__["of"])(req);
             }
         }));
@@ -1159,14 +1146,11 @@ class AuthInterceptorService {
         // )
         let tokenGet = JSON.parse(localStorage.getItem("userData"));
         if (tokenGet == null) {
-            console.log("req", req);
             return next.handle(req);
         }
         else {
             let tokenHead = `bearer ${tokenGet["Token"]}`;
-            console.log("token");
             let authorizedReq = req.clone({ headers: req.headers.append("Auth", tokenHead) });
-            console.log("authorizedReq", authorizedReq);
             return next.handle(authorizedReq);
         }
     }

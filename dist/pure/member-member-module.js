@@ -316,20 +316,16 @@ class DashboardComponent {
     }
     pushToCheckout(newitem) {
         let parsedJSON = JSON.parse(newitem);
-        console.log(parsedJSON);
         this.tablecheckout = true;
         this.Checkout.push(parsedJSON);
     }
     checkout() {
-        console.log(this.Checkout);
         let removedUnused = this.Checkout.map((x) => { return { ItemID: x.ItemID, Qty: x.Qty }; });
         let jsonData = JSON.stringify({ House: this.Rumah, Items: removedUnused });
-        console.log("CHECKOUT", jsonData);
         this.store.dispatch(new _redux_actions_tomas_actions__WEBPACK_IMPORTED_MODULE_1__["TomasAddMemTomas"](jsonData));
     }
     delete(index) {
         this.Checkout.splice(index, 1);
-        console.log("new checkout", this.Checkout);
     }
 }
 DashboardComponent.ɵfac = function DashboardComponent_Factory(t) { return new (t || DashboardComponent)(_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdirectiveInject"](_ngrx_store__WEBPACK_IMPORTED_MODULE_3__["Store"])); };
@@ -405,13 +401,11 @@ class LoginToggle {
     canActivate(route, state) {
         return new Promise((resolve, _) => {
             this.store.select("auth").subscribe(x => {
-                console.log("member login toggle");
                 if (x.token) {
                     this.router.navigateByUrl("/member/dashboard");
                     resolve(false);
                 }
                 else {
-                    console.log("member login toggle reject");
                     resolve(true);
                 }
             });
@@ -783,7 +777,6 @@ class AuthGuard {
     canActivate(route, state) {
         return new Promise((resolve, _) => {
             this.store.select("auth").subscribe(x => {
-                console.log("auth guard. auth state", x);
                 if (x.token) {
                     resolve(true);
                 }
@@ -847,7 +840,6 @@ class TomasComponent {
             Qty: this.qty,
             Total: this.qty * this.curstock.Harga
         };
-        console.log("obj", object);
         let jsonData = JSON.stringify(object);
         this.addItemEvent.emit(jsonData);
     }

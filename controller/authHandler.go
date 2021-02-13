@@ -3,7 +3,6 @@ package controller
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"pure/models"
@@ -24,7 +23,6 @@ type AuthHandler struct {
 func (c AuthHandler) Login(db *sql.DB) http.HandlerFunc {
 
 	return func(res http.ResponseWriter, req *http.Request) {
-		fmt.Println("endpoint login hit")
 		decoder := json.NewDecoder(req.Body)
 		var user models.User
 		var jwt models.JWT
@@ -103,10 +101,6 @@ func (c AuthHandler) Register(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		stringHashPass := string(hashPass)
-
-		convertedNIM, _ := strconv.Atoi(userInfo.NIM)
-		fmt.Println(convertedNIM)
-		fmt.Println(stringHashPass)
 
 		insert, err := db.Prepare(`INSERT INTO usertable (nama,rumah,NIM,pass,role) VALUES ($1,$2,$3,$4,$5)`)
 
