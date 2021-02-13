@@ -72,7 +72,7 @@ func main() {
 	router.HandleFunc("/tomas/admmonitor", utils.Cors(tomas.AdmMonitor(db)))
 	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
 
-	spa := spaHandler{staticPath: "dist/pure", indexPath: "dist/pure/index.html"}
+	spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
 	router.PathPrefix("/").Handler(spa)
 
 	var PORT = os.Getenv("PORT")
