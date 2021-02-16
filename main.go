@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"pure/controller"
 	"pure/driver"
-	"pure/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -60,17 +59,17 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/login", utils.Cors(auth.Login(db)))
-	router.HandleFunc("/register", utils.Cors(auth.Register(db)))
-	router.HandleFunc("/tomas/init", utils.Cors(tomas.Init(db)))
-	router.HandleFunc("/tomas/additem", utils.Cors(tomas.AddItem(db)))
-	router.HandleFunc("/tomas/adminputtomas", utils.Cors(tomas.AdmInputTomas(db)))
-	router.HandleFunc("/tomas/meminputtomas", utils.Cors(tomas.MemInputTomas(db)))
+	router.HandleFunc("/login", auth.Login(db))
+	router.HandleFunc("/register", auth.Register(db))
+	router.HandleFunc("/tomas/init", tomas.Init(db))
+	router.HandleFunc("/tomas/additem", tomas.AddItem(db))
+	router.HandleFunc("/tomas/adminputtomas", tomas.AdmInputTomas(db))
+	router.HandleFunc("/tomas/meminputtomas", tomas.MemInputTomas(db))
 	// router.HandleFunc("/tomas/memgetjournal", utils.Cors(tomas.MemGetJournal(db)))
 	// router.HandleFunc("/tomas/admgetcurstocklist", utils.Cors(tomas.GetCurStockList(db)))
-	router.HandleFunc("/tomas/meminit", utils.Cors(tomas.MemInit(db)))
-	router.HandleFunc("/tomas/admmonitor", utils.Cors(tomas.AdmMonitor(db)))
-	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
+	router.HandleFunc("/tomas/meminit", tomas.MemInit(db))
+	router.HandleFunc("/tomas/admmonitor", tomas.AdmMonitor(db))
+	router.HandleFunc("/tomas/backupreset", tomas.BackupReset(db))
 
 	spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
 	router.PathPrefix("/").Handler(spa)

@@ -20,7 +20,7 @@ type TomasHandler struct {
 }
 
 //Init is for get some of tomas info for admin dashboard
-func (c TomasHandler) Init(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 
 	return func(res http.ResponseWriter, req *http.Request) {
 
@@ -88,7 +88,7 @@ func (c TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 }
 
 //AddItem is to add item to itemlist
-func (c TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		claims, err := Authenticate(res, req)
@@ -122,7 +122,7 @@ func (c TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 }
 
 //AdmInputTomas is for
-func (c TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		claims, err := Authenticate(res, req)
@@ -169,7 +169,7 @@ func (c TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 }
 
 //MemInputTomas is for
-func (c TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		claims, err := Authenticate(res, req)
@@ -253,7 +253,7 @@ func Authenticate(res http.ResponseWriter, req *http.Request) (jwt.MapClaims, er
 }
 
 //MemInit is for initializing mem
-func (c TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {
@@ -327,7 +327,7 @@ func (c TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 }
 
 //AdmMonitor is to monitor
-func (c TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		claims, err := Authenticate(res, req)
@@ -441,7 +441,7 @@ func (c TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 }
 
 //BackupReset is for
-func (c TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
+func (c *TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {

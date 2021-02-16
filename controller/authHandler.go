@@ -20,7 +20,7 @@ type AuthHandler struct {
 }
 
 //Login handles http request post related to login and send back token
-func (c AuthHandler) Login(db *sql.DB) http.HandlerFunc {
+func (c *AuthHandler) Login(db *sql.DB) http.HandlerFunc {
 
 	return func(res http.ResponseWriter, req *http.Request) {
 		decoder := json.NewDecoder(req.Body)
@@ -81,7 +81,7 @@ func CreateToken(user models.User) (string, error) {
 }
 
 //Register handles http request post related to registration of user
-func (c AuthHandler) Register(db *sql.DB) http.HandlerFunc {
+func (c *AuthHandler) Register(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var userInfo struct {
 			Rumah    string
