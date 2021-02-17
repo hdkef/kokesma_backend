@@ -29,8 +29,8 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		if claims["Role"] == "MEM" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
+		if claims["Role"] != "PBU" {
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
 			return
 		}
 
@@ -96,8 +96,8 @@ func (c *TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		if claims["Role"] == "MEM" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
+		if claims["Role"] != "PBU" {
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
 			return
 		}
 
@@ -130,8 +130,8 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		if claims["Role"] == "MEM" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
+		if claims["Role"] != "PBU" {
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
 			return
 		}
 
@@ -335,8 +335,8 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		if claims["Role"] == "MEM" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
+		if claims["Role"] != "PBU" {
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
 			return
 		}
 
@@ -448,8 +448,8 @@ func (c *TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
 			return
 		}
-		if claims["Role"] == "MEM" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized")
+		if claims["Role"] != "PBU" {
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
 			return
 		}
 		_, err = db.Exec("INSERT INTO journal_b SELECT * FROM journal")
