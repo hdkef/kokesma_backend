@@ -68,15 +68,14 @@ func main() {
 	router.HandleFunc("/tomas/additem", utils.Cors(tomas.AddItem(db)))
 	router.HandleFunc("/tomas/adminputtomas", utils.Cors(tomas.AdmInputTomas(db)))
 	router.HandleFunc("/tomas/meminputtomas", utils.Cors(tomas.MemInputTomas(db)))
-	// router.HandleFunc("/tomas/memgetjournal", utils.Cors(tomas.MemGetJournal(db)))
-	// router.HandleFunc("/tomas/admgetcurstocklist", utils.Cors(tomas.GetCurStockList(db)))
 	router.HandleFunc("/tomas/meminit", utils.Cors(tomas.MemInit(db)))
 	router.HandleFunc("/tomas/admmonitor", utils.Cors(tomas.AdmMonitor(db)))
 	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
 	router.HandleFunc("/acc/insert", utils.Cors(akun.Insert(db)))
+	router.HandleFunc("/acc/journal", utils.Cors(akun.AccJurnal(db)))
 
-	spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
-	router.PathPrefix("/").Handler(spa)
+	// spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
+	// router.PathPrefix("/").Handler(spa)
 
 	var PORT = os.Getenv("PORT")
 
