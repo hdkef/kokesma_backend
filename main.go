@@ -10,6 +10,7 @@ import (
 	"pure/driver"
 	"pure/utils"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -74,8 +75,8 @@ func main() {
 	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
 	router.HandleFunc("/acc/insert", utils.Cors(akun.Insert(db)))
 
-	// spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
-	// router.PathPrefix("/").Handler(spa)
+	spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
+	router.PathPrefix("/").Handler(spa)
 
 	var PORT = os.Getenv("PORT")
 
@@ -83,7 +84,7 @@ func main() {
 
 	fmt.Println("about to begin listening...")
 
-	err = http.ListenAndServe(address, router)
+	err = http.ListenAndServe(address, gziphandler.GzipHandler(router))
 
 	if err != nil {
 		panic(err)
