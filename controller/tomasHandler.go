@@ -261,6 +261,7 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		userID := claims["Id"]
+		var house = claims["Rumah"]
 		type CurStock struct {
 			ItemID int
 			Nama   string
@@ -275,21 +276,10 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 			Total int
 		}
 		initLoad := struct {
-			Nama     string
-			Rumah    string
-			NIM      string
 			Curstock []CurStock
 			Journal  []Journal
 		}{}
-		rows, err := db.Query("SELECT nama, rumah, nim FROM usertable WHERE id=$1", userID)
-		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot select")
-			return
-		}
-		for rows.Next() {
-			rows.Scan(&initLoad.Nama, &initLoad.Rumah, &initLoad.NIM)
-		}
-		rows, err = db.Query("SELECT itemlist.namaprod,curstocklist.qty, itemlist.image, itemlist.harga, itemlist.id FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", initLoad.Rumah)
+		rows, err := db.Query("SELECT itemlist.namaprod,curstocklist.qty, itemlist.image, itemlist.harga, itemlist.id FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", house)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot select")
 			return

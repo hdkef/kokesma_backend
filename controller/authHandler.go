@@ -32,8 +32,8 @@ func (c *AuthHandler) Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		inputPass := user.Password
-		row := db.QueryRow("SELECT id,nama,pass FROM usertable WHERE nim=$1 AND role=$2", user.NIM, user.Role)
-		err = row.Scan(&user.ID, &user.Nama, &user.Password)
+		row := db.QueryRow("SELECT id,nama,pass,rumah FROM usertable WHERE nim=$1 AND role=$2", user.NIM, user.Role)
+		err = row.Scan(&user.ID, &user.Nama, &user.Password, &user.Rumah)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "username not found")
 			return
@@ -49,7 +49,7 @@ func (c *AuthHandler) Login(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "cannot create token")
 			return
 		}
-		jwt = models.JWT{ID: user.ID, Token: token, ExpiresAt: expires, Role: user.Role}
+		jwt = models.JWT{ID: user.ID, Token: token, ExpiresAt: expires, Role: user.Role, Nama: user.Nama, Rumah: user.Rumah, NIM: user.NIM}
 		res.WriteHeader(http.StatusOK)
 		jsonData, error := json.Marshal(jwt)
 		if error != nil {
@@ -65,9 +65,10 @@ func CreateToken(user models.User) (string, error) {
 	secret := os.Getenv("SECRET")
 	var claims = jwt.MapClaims{
 		"Id":        strconv.Itoa(user.ID),
-		"Subject":   user.Nama,
+		"Nama":      user.Nama,
+		"NIM":       user.NIM,
+		"Rumah":     user.Rumah,
 		"ExpiresAt": expires,
-		"Issuer":    "KOKESMA",
 		"Role":      user.Role,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
