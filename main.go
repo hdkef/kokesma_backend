@@ -57,6 +57,7 @@ func main() {
 
 	auth := controller.AuthHandler{}
 	tomas := controller.TomasHandler{}
+	akun := controller.AkunHandler{}
 
 	router := mux.NewRouter()
 
@@ -71,9 +72,10 @@ func main() {
 	router.HandleFunc("/tomas/meminit", utils.Cors(tomas.MemInit(db)))
 	router.HandleFunc("/tomas/admmonitor", utils.Cors(tomas.AdmMonitor(db)))
 	router.HandleFunc("/tomas/backupreset", utils.Cors(tomas.BackupReset(db)))
+	router.HandleFunc("/acc/insert", utils.Cors(akun.Insert(db)))
 
-	spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
-	router.PathPrefix("/").Handler(spa)
+	// spa := spaHandler{staticPath: "dist/pure", indexPath: "index.html"}
+	// router.PathPrefix("/").Handler(spa)
 
 	var PORT = os.Getenv("PORT")
 
