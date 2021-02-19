@@ -55,6 +55,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
 
 	auth := controller.AuthHandler{}
 	tomas := controller.TomasHandler{}
