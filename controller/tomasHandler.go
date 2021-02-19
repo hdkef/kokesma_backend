@@ -445,26 +445,32 @@ func (c *TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 		_, err = db.Exec("INSERT INTO journal_b SELECT * FROM journal")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup journal")
+			return
 		}
 		_, err = db.Exec("INSERT INTO stocklist_b SELECT * FROM stocklist")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup stocklist")
+			return
 		}
 		_, err = db.Exec("INSERT INTO curstocklist_b SELECT * FROM curstocklist")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup curstocklist")
+			return
 		}
 		_, err = db.Exec("DELETE FROM journal")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete journal")
+			return
 		}
 		_, err = db.Exec("DELETE FROM stocklist")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete stocklist")
+			return
 		}
 		_, err = db.Exec("DELETE FROM curstocklist")
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete curstocklist")
+			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "Success backup and reset")
 	}

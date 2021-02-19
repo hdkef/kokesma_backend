@@ -13,7 +13,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const expires = 604800000
+const (
+	expires = 604800000
+	invit   = "LFC"
+)
 
 //AuthHandler wraps all http request related to authentication mechanism
 type AuthHandler struct {
@@ -90,10 +93,20 @@ func (c *AuthHandler) Register(db *sql.DB) http.HandlerFunc {
 			Nama     string
 			Password string
 			Role     string
+			Invit    string
 		}
 		err := json.NewDecoder(req.Body).Decode(&userInfo)
 		if err != nil {
 			utils.ResponseError(res, http.StatusBadRequest, "cannot unmarshall json")
+			return
+		}
+		if userInfo.Invit != invit {
+			utils.ResponseError(res, http.StatusUnauthorized, "maaf sahabat, kode invitation salah")
+			return
+		}
+		_, err = db.Query("SELECT nama FROM usertable WHERE NIM=$1", userInfo.NIM)
+		if err == nil {
+			utils.ResponseError(res, http.StatusConflict, "maaf sahabat, nim ini sudah terdaftar")
 			return
 		}
 		hashPass, err := bcrypt.GenerateFromPassword([]byte(userInfo.Password), 9)
