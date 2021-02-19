@@ -36,6 +36,7 @@ func (c *AuthHandler) Login(db *sql.DB) http.HandlerFunc {
 		}
 		inputPass := user.Password
 		row := db.QueryRow("SELECT id,nama,pass,rumah FROM usertable WHERE nim=$1 AND role=$2", user.NIM, user.Role)
+
 		err = row.Scan(&user.ID, &user.Nama, &user.Password, &user.Rumah)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "username not found")
@@ -97,38 +98,34 @@ func (c *AuthHandler) Register(db *sql.DB) http.HandlerFunc {
 		}
 		err := json.NewDecoder(req.Body).Decode(&userInfo)
 		if err != nil {
-			utils.ResponseError(res, http.StatusBadRequest, "cannot unmarshall json")
+			utils.ResponseError(res, http.StatusBadRequest, "cannot unmarshall json "+err.Error())
 			return
 		}
 		if userInfo.Invit != invit {
-			utils.ResponseError(res, http.StatusUnauthorized, "maaf sahabat, kode invitation salah")
+			utils.ResponseError(res, http.StatusUnauthorized, "maaf sahabat, kode invitation salah ")
 			return
 		}
-		_, err = db.Query("SELECT nama FROM usertable WHERE NIM=$1", userInfo.NIM)
-		if err == nil {
-			utils.ResponseError(res, http.StatusConflict, "maaf sahabat, nim ini sudah terdaftar")
+		var dummy string
+		row := db.QueryRow("SELECT nama FROM usertable WHERE NIM=$1", userInfo.NIM)
+		err = row.Scan(&dummy)
+		if err != sql.ErrNoRows {
+			utils.ResponseError(res, http.StatusInternalServerError, "maaf sahabat, nim udah dipakai ")
 			return
 		}
 		hashPass, err := bcrypt.GenerateFromPassword([]byte(userInfo.Password), 9)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "password encryption failed, operation aborted")
+			utils.ResponseError(res, http.StatusInternalServerError, "password encryption failed, operation aborted "+err.Error())
 			return
 		}
 		stringHashPass := string(hashPass)
 
-		insert, err := db.Prepare(`INSERT INTO usertable (nama,rumah,NIM,pass,role) VALUES ($1,$2,$3,$4,$5)`)
+		_, err = db.Exec("INSERT INTO usertable (nama,rumah,nim,pass,role) VALUES ($1,$2,$3,$4,$5)", userInfo.Nama, userInfo.Rumah, userInfo.NIM, stringHashPass, userInfo.Role)
 
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "db prep failed")
+			utils.ResponseError(res, http.StatusInternalServerError, "db prep failed "+err.Error())
 			return
 		}
 
-		_, err = insert.Exec(userInfo.Nama, userInfo.Rumah, userInfo.NIM, stringHashPass, userInfo.Role)
-
-		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database")
-			return
-		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "registration successful")
 	}
 }

@@ -20,7 +20,7 @@ func (c *AkunHandler) Insert(db *sql.DB) http.HandlerFunc {
 
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "ACC" {
@@ -32,7 +32,7 @@ func (c *AkunHandler) Insert(db *sql.DB) http.HandlerFunc {
 		err = json.NewDecoder(req.Body).Decode(&accLoad)
 		_, err = db.Exec("INSERT INTO acc_table (date,subject,kredit,debit,ket) VALUES($1,$2,$3,$4,$5)", date, accLoad.Subject, accLoad.Kredit, accLoad.Debit, accLoad.Ket)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert acc")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert acc "+err.Error())
 			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "transaction is recorded, subject :"+accLoad.Subject+"& ket: "+accLoad.Ket)
@@ -44,7 +44,7 @@ func (c *AkunHandler) AccJurnal(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "ACC" {
@@ -57,13 +57,13 @@ func (c *AkunHandler) AccJurnal(db *sql.DB) http.HandlerFunc {
 		}
 		err = json.NewDecoder(req.Body).Decode(&load)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json "+err.Error())
 			return
 		}
 		var accRes []models.Acc
 		rows, err := db.Query("SELECT date,subject,kredit,debit,ket FROM acc_table WHERE date BETWEEN $1 AND $2", load.FDate, load.SDate)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot select db")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot select db "+err.Error())
 			return
 		}
 		for rows.Next() {
@@ -73,7 +73,7 @@ func (c *AkunHandler) AccJurnal(db *sql.DB) http.HandlerFunc {
 		}
 		jsonData, err := json.Marshal(accRes)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json "+err.Error())
 			return
 		}
 		res.Write([]byte(jsonData))

@@ -46,14 +46,14 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 
 		rows, err := db.Query("SELECT DISTINCT rumah FROM usertable")
 		if err != nil {
-			utils.ResponseError(res, http.StatusNoContent, "Tidak ada data rumah")
+			utils.ResponseError(res, http.StatusNoContent, "Tidak ada data rumah "+err.Error())
 			return
 		}
 		for rows.Next() {
 			var home string
 			err = rows.Scan(&home)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign home to value / not found "+err.Error())
 				return
 			}
 			homeLoad = append(homeLoad, home)
@@ -62,7 +62,7 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 
 		rows, err = db.Query("SELECT id, namaprod FROM itemlist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusNoContent, "Tidak ada data rumah")
+			utils.ResponseError(res, http.StatusNoContent, err.Error())
 			return
 		}
 		for rows.Next() {
@@ -70,7 +70,7 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			var itemname string
 			err = rows.Scan(&itemid, &itemname)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign home to value / not found "+err.Error())
 				return
 			}
 			itemLoad = append(itemLoad, itemid)
@@ -80,7 +80,7 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 		initLoad.ItemsName = itemNameLoad
 		jsonData, err := json.Marshal(initLoad)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json "+err.Error())
 			return
 		}
 		res.Write([]byte(jsonData))
@@ -93,7 +93,7 @@ func (c *TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "PBU" {
@@ -104,7 +104,7 @@ func (c *TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 		var itemPayload models.Item
 		err = json.NewDecoder(req.Body).Decode(&itemPayload)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot decode json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot decode json "+err.Error())
 			return
 		}
 		insert, err := db.Prepare("INSERT INTO itemlist (namaprod,harga,image) VALUES ($1,$2,$3)")
@@ -114,7 +114,7 @@ func (c *TomasHandler) AddItem(db *sql.DB) http.HandlerFunc {
 		}
 		_, err = insert.Exec(itemPayload.Nama, itemPayload.Harga, itemPayload.Image)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot execute db")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot execute db "+err.Error())
 			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, `berhasil nama : `+itemPayload.Nama+"harga: "+itemPayload.Harga)
@@ -127,11 +127,11 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "PBU" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU ")
 			return
 		}
 
@@ -139,29 +139,29 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 		date := time.Now()
 		err = json.NewDecoder(req.Body).Decode(&stockList)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json "+err.Error())
 			return
 		}
 		tx, err := db.Begin()
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction")
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
 			return
 		}
 		_, err = tx.Exec("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)", stockList.House, stockList.ItemID, date, stockList.Batch, stockList.Qty)
 		if err != nil {
 			tx.Rollback()
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
 			return
 		}
 		_, err = tx.Exec("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)", stockList.House, stockList.ItemID, stockList.Qty, stockList.Batch)
 		if err != nil {
 			tx.Rollback()
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
 			return
 		}
 		err = tx.Commit()
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction")
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
 			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "berhasil item id: "+stockList.ItemID+"date: "+stockList.Batch+"qty: "+stockList.Qty)
@@ -174,7 +174,7 @@ func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		var userID = claims["Id"]
@@ -188,30 +188,30 @@ func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 		date := time.Now()
 		err = json.NewDecoder(req.Body).Decode(&journal)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshall json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshall json "+err.Error())
 			return
 		}
 		for _, s := range journal.Items {
 			tx, err := db.Begin()
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction")
+				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
 				return
 			}
 			_, err = tx.Exec("INSERT INTO journal (date,userid,itemid,qty,house) VALUES ($1,$2,$3,$4,$5)", date, userID, s.ItemID, s.Qty, journal.House)
 			if err != nil {
 				tx.Rollback()
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1")
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
 				return
 			}
 			_, err = tx.Exec("UPDATE curstocklist SET qty= qty - $1 WHERE itemid=$2 AND house=$3", s.Qty, s.ItemID, journal.House)
 			if err != nil {
 				tx.Rollback()
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2")
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
 				return
 			}
 			err = tx.Commit()
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction")
+				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
 				return
 			}
 		}
@@ -302,14 +302,14 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 			var journalOne Journal
 			err = rows.Scan(&journalOne.Date, &journalOne.Qty, &journalOne.Nama, &journalOne.Total)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign article to value / not found")
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign jurnal to value / not found "+err.Error())
 				return
 			}
 			initLoad.Journal = append(initLoad.Journal, journalOne)
 		}
 		jsonData, err := json.Marshal(initLoad)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "Unauthorized Access")
+			utils.ResponseError(res, http.StatusInternalServerError, "Unauthorized Access "+err.Error())
 			return
 		}
 		res.Write([]byte(jsonData))
@@ -322,11 +322,11 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "PBU" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU ")
 			return
 		}
 
@@ -357,61 +357,61 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 		}
 		err = json.NewDecoder(req.Body).Decode(&load)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json "+err.Error())
 			return
 		}
 		rows, err := db.Query("SELECT nama FROM usertable WHERE rumah=$1", load.Rumah)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
 		for rows.Next() {
 			var user string
 			err = rows.Scan(&user)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "not found user")
+				utils.ResponseError(res, http.StatusInternalServerError, "not found user "+err.Error())
 				return
 			}
 			monitor.User = append(monitor.User, user)
 		}
 		rows, err = db.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.house = $1", load.Rumah)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
 		for rows.Next() {
 			var journal Journal
 			err = rows.Scan(&journal.Date, &journal.Qty, &journal.Nama, &journal.Total)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "not found journal")
+				utils.ResponseError(res, http.StatusInternalServerError, "not found journal "+err.Error())
 				return
 			}
 			monitor.Journal = append(monitor.Journal, journal)
 		}
 		rows, err = db.Query("SELECT itemlist.namaprod,curstocklist.qty FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", load.Rumah)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
 		for rows.Next() {
 			var curstock CurStock
 			err = rows.Scan(&curstock.Nama, &curstock.Qty)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock")
+				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock "+err.Error())
 				return
 			}
 			monitor.Curstock = append(monitor.Curstock, curstock)
 		}
 		rows, err = db.Query("SELECT itemlist.namaprod,stocklist.qty,itemlist.harga FROM stocklist INNER JOIN itemlist ON stocklist.itemid = itemlist.id AND stocklist.house = $1", load.Rumah)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
 		for rows.Next() {
 			var stock Stock
 			err = rows.Scan(&stock.Nama, &stock.Qty, &stock.Harga)
 			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock")
+				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock "+err.Error())
 				return
 			}
 			monitor.Stock = append(monitor.Stock, stock)
@@ -423,7 +423,7 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 		monitor.Sum = sum
 		jsonData, err := json.Marshal(monitor)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshall json")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshall json "+err.Error())
 			return
 		}
 		res.Write([]byte(jsonData))
@@ -435,41 +435,41 @@ func (c *TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "PBU" {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU ")
 			return
 		}
 		_, err = db.Exec("INSERT INTO journal_b SELECT * FROM journal")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup journal")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup journal "+err.Error())
 			return
 		}
 		_, err = db.Exec("INSERT INTO stocklist_b SELECT * FROM stocklist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup stocklist")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup stocklist "+err.Error())
 			return
 		}
 		_, err = db.Exec("INSERT INTO curstocklist_b SELECT * FROM curstocklist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup curstocklist")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup curstocklist "+err.Error())
 			return
 		}
 		_, err = db.Exec("DELETE FROM journal")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete journal")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete journal "+err.Error())
 			return
 		}
 		_, err = db.Exec("DELETE FROM stocklist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete stocklist")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete stocklist "+err.Error())
 			return
 		}
 		_, err = db.Exec("DELETE FROM curstocklist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete curstocklist")
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete curstocklist "+err.Error())
 			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "Success backup and reset")
