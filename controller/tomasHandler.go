@@ -252,16 +252,15 @@ func Authenticate(res http.ResponseWriter, req *http.Request) (jwt.MapClaims, er
 	return claimsModel, errs
 }
 
-//MemInit is for initializing mem
-func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
+//MemInitCurstock is to handle curstock
+func (c *TomasHandler) MemInitCurstock(db *sql.DB) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		claims, err := Authenticate(res, req)
 		if err != nil {
 			utils.ResponseError(res, http.StatusUnauthorized, "Unauthorized Access")
 			return
 		}
-		userID := claims["Id"]
-		var house = claims["Rumah"]
+		house := claims["Rumah"]
 		type CurStock struct {
 			ItemID int
 			Nama   string
@@ -269,16 +268,7 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 			Image  string
 			Harga  int
 		}
-		type Journal struct {
-			Date  time.Time
-			Nama  string
-			Qty   int
-			Total int
-		}
-		initLoad := struct {
-			Curstock []CurStock
-			Journal  []Journal
-		}{}
+		var curStockSlice []CurStock
 		rows, err := db.Query("SELECT itemlist.namaprod,curstocklist.qty, itemlist.image, itemlist.harga, itemlist.id FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", house)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot select")
@@ -291,9 +281,34 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 				utils.ResponseError(res, http.StatusInternalServerError, "not found")
 				return
 			}
-			initLoad.Curstock = append(initLoad.Curstock, oneInventory)
+			curStockSlice = append(curStockSlice, oneInventory)
 		}
-		rows, err = db.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.userid = $1", userID)
+		jsonData, err := json.Marshal(curStockSlice)
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json "+err.Error())
+			return
+		}
+		res.Write([]byte(jsonData))
+	}
+}
+
+//MemInitJournal is for initializing mem
+func (c *TomasHandler) MemInitJournal(db *sql.DB) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		claims, err := Authenticate(res, req)
+		if err != nil {
+			utils.ResponseError(res, http.StatusUnauthorized, "Unauthorized Access")
+			return
+		}
+		userID := claims["Id"]
+		type Journal struct {
+			Date  time.Time
+			Nama  string
+			Qty   int
+			Total int
+		}
+		var journalSlice []Journal
+		rows, err := db.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.userid = $1", userID)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot query to db")
 			return
@@ -305,11 +320,11 @@ func (c *TomasHandler) MemInit(db *sql.DB) http.HandlerFunc {
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign jurnal to value / not found "+err.Error())
 				return
 			}
-			initLoad.Journal = append(initLoad.Journal, journalOne)
+			journalSlice = append(journalSlice, journalOne)
 		}
-		jsonData, err := json.Marshal(initLoad)
+		jsonData, err := json.Marshal(journalSlice)
 		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "Unauthorized Access "+err.Error())
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json "+err.Error())
 			return
 		}
 		res.Write([]byte(jsonData))
