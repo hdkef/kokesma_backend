@@ -19,14 +19,12 @@ import (
 type TomasHandler struct {
 }
 
-//Init is for get some of tomas info for admin dashboard
+//Init is to give information about houses and itemoptions
 func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
-
 	return func(res http.ResponseWriter, req *http.Request) {
-
 		claims, err := Authenticate(res, req)
 		if err != nil {
-			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access")
+			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized access "+err.Error())
 			return
 		}
 		if claims["Role"] != "PBU" {
@@ -34,50 +32,36 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		initLoad := struct {
-			Home      []string
-			Items     []string
-			ItemsName []string
-		}{}
+		type ItemOp struct {
+			ItemID string
+			Nama   string
+		}
 
-		var homeLoad []string
-		var itemLoad []string
-		var itemNameLoad []string
+		initLoad := struct {
+			Home        []string
+			ItemOptions []ItemOp
+		}{}
 
 		rows, err := db.Query("SELECT DISTINCT rumah FROM usertable")
 		if err != nil {
-			utils.ResponseError(res, http.StatusNoContent, "Tidak ada data rumah "+err.Error())
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot iterate rows "+err.Error())
 			return
 		}
 		for rows.Next() {
-			var home string
-			err = rows.Scan(&home)
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign home to value / not found "+err.Error())
-				return
-			}
-			homeLoad = append(homeLoad, home)
+			var homeOne string
+			rows.Scan(&homeOne)
+			initLoad.Home = append(initLoad.Home, homeOne)
 		}
-		initLoad.Home = homeLoad
-
 		rows, err = db.Query("SELECT id, namaprod FROM itemlist")
 		if err != nil {
-			utils.ResponseError(res, http.StatusNoContent, err.Error())
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot iterate rows "+err.Error())
 			return
 		}
 		for rows.Next() {
-			var itemid string
-			var itemname string
-			err = rows.Scan(&itemid, &itemname)
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "cannot assign home to value / not found "+err.Error())
-				return
-			}
-			itemLoad = append(itemLoad, itemid)
-			itemNameLoad = append(itemNameLoad, itemname)
+			var itemOpOne ItemOp
+			rows.Scan(&itemOpOne.ItemID, &itemOpOne.Nama)
+			initLoad.ItemOptions = append(initLoad.ItemOptions, itemOpOne)
 		}
-		initLoad.Items = itemLoad
-		initLoad.ItemsName = itemNameLoad
 		jsonData, err := json.Marshal(initLoad)
 		if err != nil {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot marshal json "+err.Error())
@@ -135,36 +119,47 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		var stockList models.Stock
+		type Item struct {
+			ItemID string
+			Qty    string
+		}
+		payload := struct {
+			Home  string
+			Batch string
+			Items []Item
+		}{}
+
+		err = json.NewDecoder(req.Body).Decode(&payload)
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmashal json "+err.Error())
+			return
+		}
 		date := time.Now()
-		err = json.NewDecoder(req.Body).Decode(&stockList)
-		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json "+err.Error())
-			return
+		for _, s := range payload.Items {
+			tx, err := db.Begin()
+			if err != nil {
+				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+				return
+			}
+			_, err = tx.Exec("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)", payload.Home, s.ItemID, date, payload.Batch, s.Qty)
+			if err != nil {
+				tx.Rollback()
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
+				return
+			}
+			_, err = tx.Exec("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)", payload.Home, s.ItemID, s.Qty, payload.Batch)
+			if err != nil {
+				tx.Rollback()
+				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
+				return
+			}
+			err = tx.Commit()
+			if err != nil {
+				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
+				return
+			}
 		}
-		tx, err := db.Begin()
-		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
-			return
-		}
-		_, err = tx.Exec("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)", stockList.House, stockList.ItemID, date, stockList.Batch, stockList.Qty)
-		if err != nil {
-			tx.Rollback()
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
-			return
-		}
-		_, err = tx.Exec("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)", stockList.House, stockList.ItemID, stockList.Qty, stockList.Batch)
-		if err != nil {
-			tx.Rollback()
-			utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
-			return
-		}
-		err = tx.Commit()
-		if err != nil {
-			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
-			return
-		}
-		utils.ResponseSuccessJSON(res, http.StatusOK, "berhasil item id: "+stockList.ItemID+"date: "+stockList.Batch+"qty: "+stockList.Qty)
+		utils.ResponseSuccessJSON(res, http.StatusOK, "berhasil tambah items")
 	}
 }
 
