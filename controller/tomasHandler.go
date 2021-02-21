@@ -135,29 +135,40 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		date := time.Now()
+		tx, err := db.Begin()
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+			return
+		}
+		stm1, err := tx.Prepare("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)")
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 1 "+err.Error())
+			return
+		}
+		stm2, err := tx.Prepare("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)")
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 2 "+err.Error())
+			return
+		}
 		for _, s := range payload.Items {
-			tx, err := db.Begin()
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
-				return
-			}
-			_, err = tx.Exec("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)", payload.Home, s.ItemID, date, payload.Batch, s.Qty)
+			_, err = stm1.Exec(payload.Home, s.ItemID, date, payload.Batch, s.Qty)
 			if err != nil {
 				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
 				return
 			}
-			_, err = tx.Exec("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)", payload.Home, s.ItemID, s.Qty, payload.Batch)
+			_, err = stm2.Exec(payload.Home, s.ItemID, s.Qty, payload.Batch)
 			if err != nil {
 				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
 				return
 			}
-			err = tx.Commit()
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
-				return
-			}
+		}
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
+			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "berhasil tambah items")
 	}
@@ -186,29 +197,39 @@ func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshall json "+err.Error())
 			return
 		}
+		tx, err := db.Begin()
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+			return
+		}
+		stm1, err := tx.Prepare("INSERT INTO journal (date,userid,itemid,qty,house) VALUES ($1,$2,$3,$4,$5)")
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 1 "+err.Error())
+			return
+		}
+		stm2, err := tx.Prepare("UPDATE curstocklist SET qty= qty - $1 WHERE itemid=$2 AND house=$3")
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 2 "+err.Error())
+			return
+		}
 		for _, s := range journal.Items {
-			tx, err := db.Begin()
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
-				return
-			}
-			_, err = tx.Exec("INSERT INTO journal (date,userid,itemid,qty,house) VALUES ($1,$2,$3,$4,$5)", date, userID, s.ItemID, s.Qty, journal.House)
+			_, err = stm1.Exec(date, userID, s.ItemID, s.Qty, journal.House)
 			if err != nil {
 				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 1 "+err.Error())
 				return
 			}
-			_, err = tx.Exec("UPDATE curstocklist SET qty= qty - $1 WHERE itemid=$2 AND house=$3", s.Qty, s.ItemID, journal.House)
+			_, err = stm2.Exec(s.Qty, s.ItemID, journal.House)
 			if err != nil {
 				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "cannot insert user into database 2 "+err.Error())
 				return
 			}
-			err = tx.Commit()
-			if err != nil {
-				utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
-				return
-			}
+		}
+		err = tx.Commit()
+		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
+			return
 		}
 		jsonItems, _ := json.Marshal(journal.Items)
 		utils.ResponseSuccessJSON(res, http.StatusOK, "transaction "+string(jsonItems)+" succeed")
