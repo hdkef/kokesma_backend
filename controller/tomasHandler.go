@@ -42,8 +42,15 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			ItemOptions []ItemOp
 		}{}
 
-		rows, err := db.Query("SELECT DISTINCT rumah FROM usertable")
+		tx, err := db.Begin()
 		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+			return
+		}
+
+		rows, err := tx.Query("SELECT DISTINCT rumah FROM usertable")
+		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot iterate rows "+err.Error())
 			return
 		}
@@ -52,8 +59,9 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			rows.Scan(&homeOne)
 			initLoad.Home = append(initLoad.Home, homeOne)
 		}
-		rows, err = db.Query("SELECT id, namaprod FROM itemlist")
+		rows, err = tx.Query("SELECT id, namaprod FROM itemlist")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot iterate rows "+err.Error())
 			return
 		}
@@ -61,6 +69,12 @@ func (c *TomasHandler) Init(db *sql.DB) http.HandlerFunc {
 			var itemOpOne ItemOp
 			rows.Scan(&itemOpOne.ItemID, &itemOpOne.Nama)
 			initLoad.ItemOptions = append(initLoad.ItemOptions, itemOpOne)
+		}
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
+			return
 		}
 		jsonData, err := json.Marshal(initLoad)
 		if err != nil {
@@ -142,11 +156,13 @@ func (c *TomasHandler) AdmInputTomas(db *sql.DB) http.HandlerFunc {
 		}
 		stm1, err := tx.Prepare("INSERT INTO stocklist (house,itemid,date,batch,qty) VALUES ($1,$2,$3,$4,$5)")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 1 "+err.Error())
 			return
 		}
 		stm2, err := tx.Prepare("INSERT INTO curstocklist (house,itemid,qty,batch) VALUES ($1,$2,$3,$4)")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 2 "+err.Error())
 			return
 		}
@@ -204,11 +220,13 @@ func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 		}
 		stm1, err := tx.Prepare("INSERT INTO journal (date,userid,itemid,qty,house) VALUES ($1,$2,$3,$4,$5)")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 1 "+err.Error())
 			return
 		}
 		stm2, err := tx.Prepare("UPDATE curstocklist SET qty= qty - $1 WHERE itemid=$2 AND house=$3")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with preparing database transaction 2 "+err.Error())
 			return
 		}
@@ -228,6 +246,7 @@ func (c *TomasHandler) MemInputTomas(db *sql.DB) http.HandlerFunc {
 		}
 		err = tx.Commit()
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
 			return
 		}
@@ -391,8 +410,14 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot unmarshal json "+err.Error())
 			return
 		}
-		rows, err := db.Query("SELECT nama FROM usertable WHERE rumah=$1", load.Rumah)
+		tx, err := db.Begin()
 		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+			return
+		}
+		rows, err := tx.Query("SELECT nama FROM usertable WHERE rumah=$1", load.Rumah)
+		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
@@ -400,13 +425,15 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			var user string
 			err = rows.Scan(&user)
 			if err != nil {
+				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "not found user "+err.Error())
 				return
 			}
 			monitor.User = append(monitor.User, user)
 		}
-		rows, err = db.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.house = $1", load.Rumah)
+		rows, err = tx.Query("SELECT journal.date, journal.qty, itemlist.namaprod, journal.qty * itemlist.harga FROM journal INNER JOIN itemlist ON journal.itemid = itemlist.id AND journal.house = $1", load.Rumah)
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
@@ -414,13 +441,15 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			var journal Journal
 			err = rows.Scan(&journal.Date, &journal.Qty, &journal.Nama, &journal.Total)
 			if err != nil {
+				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "not found journal "+err.Error())
 				return
 			}
 			monitor.Journal = append(monitor.Journal, journal)
 		}
-		rows, err = db.Query("SELECT itemlist.namaprod,curstocklist.qty FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", load.Rumah)
+		rows, err = tx.Query("SELECT itemlist.namaprod,curstocklist.qty FROM curstocklist INNER JOIN itemlist ON curstocklist.itemid = itemlist.id AND curstocklist.house = $1", load.Rumah)
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
@@ -428,13 +457,15 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			var curstock CurStock
 			err = rows.Scan(&curstock.Nama, &curstock.Qty)
 			if err != nil {
+				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock "+err.Error())
 				return
 			}
 			monitor.Curstock = append(monitor.Curstock, curstock)
 		}
-		rows, err = db.Query("SELECT itemlist.namaprod,stocklist.qty,itemlist.harga FROM stocklist INNER JOIN itemlist ON stocklist.itemid = itemlist.id AND stocklist.house = $1", load.Rumah)
+		rows, err = tx.Query("SELECT itemlist.namaprod,stocklist.qty,itemlist.harga FROM stocklist INNER JOIN itemlist ON stocklist.itemid = itemlist.id AND stocklist.house = $1", load.Rumah)
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot db query "+err.Error())
 			return
 		}
@@ -442,10 +473,17 @@ func (c *TomasHandler) AdmMonitor(db *sql.DB) http.HandlerFunc {
 			var stock Stock
 			err = rows.Scan(&stock.Nama, &stock.Qty, &stock.Harga)
 			if err != nil {
+				tx.Rollback()
 				utils.ResponseError(res, http.StatusInternalServerError, "not found curstock "+err.Error())
 				return
 			}
 			monitor.Stock = append(monitor.Stock, stock)
+		}
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
+			return
 		}
 		var sum int
 		for _, j := range monitor.Journal {
@@ -473,34 +511,51 @@ func (c *TomasHandler) BackupReset(db *sql.DB) http.HandlerFunc {
 			utils.ResponseError(res, http.StatusUnauthorized, "unauthorized bukan PBU ")
 			return
 		}
-		_, err = db.Exec("INSERT INTO journal_b SELECT * FROM journal")
+		tx, err := db.Begin()
 		if err != nil {
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with starting database transaction "+err.Error())
+			return
+		}
+		_, err = tx.Exec("INSERT INTO journal_b SELECT * FROM journal")
+		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup journal "+err.Error())
 			return
 		}
-		_, err = db.Exec("INSERT INTO stocklist_b SELECT * FROM stocklist")
+		_, err = tx.Exec("INSERT INTO stocklist_b SELECT * FROM stocklist")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup stocklist "+err.Error())
 			return
 		}
-		_, err = db.Exec("INSERT INTO curstocklist_b SELECT * FROM curstocklist")
+		_, err = tx.Exec("INSERT INTO curstocklist_b SELECT * FROM curstocklist")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot backup curstocklist "+err.Error())
 			return
 		}
-		_, err = db.Exec("DELETE FROM journal")
+		_, err = tx.Exec("DELETE FROM journal")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete journal "+err.Error())
 			return
 		}
-		_, err = db.Exec("DELETE FROM stocklist")
+		_, err = tx.Exec("DELETE FROM stocklist")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete stocklist "+err.Error())
 			return
 		}
-		_, err = db.Exec("DELETE FROM curstocklist")
+		_, err = tx.Exec("DELETE FROM curstocklist")
 		if err != nil {
+			tx.Rollback()
 			utils.ResponseError(res, http.StatusInternalServerError, "cannot delete curstocklist "+err.Error())
+			return
+		}
+		err = tx.Commit()
+		if err != nil {
+			tx.Rollback()
+			utils.ResponseError(res, http.StatusInternalServerError, "something was wrong with comitting database transaction "+err.Error())
 			return
 		}
 		utils.ResponseSuccessJSON(res, http.StatusOK, "Success backup and reset")
